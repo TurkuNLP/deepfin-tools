@@ -66,7 +66,7 @@ def sentence_statistics(sentences):
 
     for comments, words in sentences:
         stats['sent-len'][len(words)] += 1
-        stats['token-count'] += 1
+        stats['token-count'] += len(words)
         for w in words:
             stats['word-len'][len(w.form)] += 1
             stats['upos-count'][w.upos] += 1
