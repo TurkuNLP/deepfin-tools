@@ -1,6 +1,7 @@
 import re
 import pickle
 
+from collections import namedtuple
 from logging import error
 
 
@@ -9,6 +10,24 @@ from logging import error
 #   if hasattr(X, 'dtype') and np.issubdtype(X.dtype, np.float):
 import warnings
 warnings.simplefilter(action='ignore', category=FutureWarning)
+
+
+# https://universaldependencies.org/format.html
+CONLLU_FIELDS = [
+    'id',
+    'form',
+    'lemma',
+    'upos',
+    'xpos',
+    'feats',
+    'head',
+    'deprel',
+    'deps',
+    'misc',
+]
+
+
+Word = namedtuple('Word', CONLLU_FIELDS)
 
 
 class Example(object):
