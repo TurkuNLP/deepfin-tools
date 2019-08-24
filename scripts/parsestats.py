@@ -97,7 +97,7 @@ def process_document(document_id, document_info, sentences):
 
 
 def is_document_boundary(comment):
-    return comment.startswith('# <doc ')
+    return comment.startswith('# <doc ') or comment.startswith('# doc_id = ')
 
 
 def parse_document_comment(comment):

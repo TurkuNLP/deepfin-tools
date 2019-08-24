@@ -14,6 +14,11 @@ from langdetect import detect
 FI_WORD_RE = re.compile(r'[a-zåäö]{2,}')
 
 
+# Regex definition for non-Finnish unicode letter
+# (https://stackoverflow.com/a/6314634)
+NON_FI_LETTER = re.compile(r'[^\W\d_a-zA-ZåäöÅÄÖ]')
+
+
 FREQUENT_FI_WORDS = set([
     'aika',
     'aikana',
@@ -127,10 +132,14 @@ def argparser():
                     help='maximum ratio of digit characters')
     ap.add_argument('-f', '--frequent-ratio', default=None, type=float,
                     help='minimum ratio of frequent Finnish words')
+    ap.add_argument('-F', '--foreign-ratio', default=None, type=float,
+                    help='maximum ratio of non-Finnish alphabetic characters')
     ap.add_argument('-i', '--invert', default=False, action='store_true',
                     help='invert filter criteria')
     ap.add_argument('-l', '--langdetect', default=False, action='store_true',
                     help='run langdetect to filter to Finnish')
+    ap.add_argument('-L', '--limit', default=None, type=int,
+                    help='limit number of documents to process')
     ap.add_argument('-p', '--punct-ratio', default=None, type=float,
                     help='maximum ratio of punctuation characters')
     ap.add_argument('-s', '--min-sents', default=None, type=int,
@@ -155,6 +164,10 @@ def num_toks(sentences):
 
 def num_words(sentences):
     return sum(len(FI_WORD_RE.findall(s)) for s in sentences)
+
+
+def foreign_ratio(sentences):
+    return sum(len(NON_FI_LETTER.findall(s)) for s in sentences)/char_count(sentences)
 
 
 def avg_len(sentences):
@@ -210,6 +223,9 @@ def filter_sentences(sentences, options):
     if (options.digit_ratio is not None and 
         digit_ratio(sentences) > options.digit_ratio):
         return True
+    if (options.foreign_ratio is not None and
+        foreign_ratio(sentences) > options.foreign_ratio):
+        return True
     if (options.min_words is not None and 
         num_words(sentences) < options.min_words):
         return True
@@ -221,7 +237,7 @@ def filter_sentences(sentences, options):
     return False
 
 
-def process_sentences(sentences, options):
+def process_document(sentences, options):
     skip = filter_sentences(sentences, options)
     if options.invert:
         skip = not skip
@@ -233,18 +249,24 @@ def process_sentences(sentences, options):
 
 
 def process(fn, options):
+    doc_count = 0
     with open(fn) as f:
         sentences = []
-        for l in f:
+        for ln, l in enumerate(f, start=1):
             l = l.rstrip()
             if l and not l.isspace():
                 sentences.append(l)
             else:
                 if sentences:
-                    process_sentences(sentences, options)
+                    process_document(sentences, options)
+                    doc_count += 1
                 sentences = []
+                if options.limit is not None and doc_count >= options.limit:
+                    break
+            if ln % 10000 == 0:
+                print('processed {} ...'.format(ln), file=sys.stderr)
         if sentences:
-            process_sentences(sentences, options)
+            process_document(sentences, options)
 
 
 def main(argv):
