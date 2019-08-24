@@ -118,13 +118,14 @@ def process_stream(f, name, *args):
         if ln % 100000 == 0:
             print('processed {} lines, output {}/{} ({:.1%}) documents ...'.\
                       format(ln, output_count, total_count,
-                             output_count/total_count), file=sys.stderr)
+                             output_count/total_count),
+                  file=sys.stderr, flush=True)
     if sentences:
         output_count += process_document(sentences, *args)
         total_count += 1
     print('{}: output {}/{} ({:.1%})'.format(
         os.path.basename(name), output_count, total_count,
-        output_count/total_count), file=sys.stderr)
+        output_count/total_count), file=sys.stderr, flush=True)
 
 
 def process(fn, *args):
@@ -145,10 +146,10 @@ def main(argv):
           file=sys.stderr, flush=True)
     for fn in args.data:
         print('processing {} ...'.format(os.path.basename(fn)),
-              file=sys.stderr)
+              file=sys.stderr, flush=True)
         process(fn, clf, vecf, args)
         print('completed {}.'.format(os.path.basename(fn)),
-              file=sys.stderr)
+              file=sys.stderr, flush=True)
     return 0
 
 
