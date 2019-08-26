@@ -34,17 +34,30 @@ mkdir -p "$MTGEN_OUT_NONGENERATED"
 
 for f in $(find "$MTGEN_INDIR" -maxdepth 1 \
     \( -name '*.conllu' -or -name '*.conllu.gz' \)); do
+    # Generated
     o="$MTGEN_OUT_GENERATED/$(basename "$f" .gz)"
     if [ -s "$o" ]; then
-	echo "$0:$o exists, skipping ..." >&2
+    	echo "$0:$o exists, skipping ..." >&2
     else
-	echo "$0:BATCH:$PREDICT -f Nongenerated $f > $o" >&2
-	# python3 $PREDICT -f Nongenerated "$f" > "$o"
-	sbatch "$SCRIPTDIR/runmtgen.sh" \
-	    "$PREDICT" "$MTGEN_MODEL" "$f" "$o" \
-	    -f Nongenerated \
-	    -t -b "$MTGEN_BIAS"
-	echo "$0:BATCHED:$PREDICT -f Nongenerated $f > $o" >&2
-	sleep 60
+    	echo "$0:BATCH:$PREDICT -f Nongenerated $f > $o" >&2
+    	sbatch "$SCRIPTDIR/runmtgen.sh" \
+    	    "$PREDICT" "$MTGEN_MODEL" "$f" "$o" \
+    	    -f Nongenerated \
+    	    -t -b "$MTGEN_BIAS"
+    	echo "$0:BATCHED:$PREDICT -f Nongenerated $f > $o" >&2
+    	sleep 60
+    fi
+    # Nongenerated
+    o="$MTGEN_OUT_NONGENERATED/$(basename "$f" .gz)"
+    if [ -s "$o" ]; then
+    	echo "$0:$o exists, skipping ..." >&2
+    else
+    	echo "$0:BATCH:$PREDICT -f Generated $f > $o" >&2
+    	sbatch "$SCRIPTDIR/runmtgen.sh" \
+    	    "$PREDICT" "$MTGEN_MODEL" "$f" "$o" \
+    	    -f Generated \
+    	    -t -b "$MTGEN_BIAS"
+    	echo "$0:BATCHED:$PREDICT -f Generated $f > $o" >&2
+    	sleep 60
     fi
 done
