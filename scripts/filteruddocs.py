@@ -37,12 +37,20 @@ def get_sentence_texts(sentences, options):
 
 def process_document(sentences, stats, options):
     sentence_texts = get_sentence_texts(sentences, options)
-    skip = filter_sentences(sentence_texts, stats, options)
+    fail = filter_sentences(sentence_texts, options)
+    if fail is None:
+        result = 'pass-all'
+        skip = False
+    else:
+        result = 'fail-{}'.format(fail)
+        skip = True
+    stats[result] += 1
     if options.invert:
         skip = not skip
     if skip:
         return 0
     else:
+        print('# filter_result = {}'.format(result))
         for comments, words in sentences:
             for c in comments:
                 print(c)
