@@ -1,7 +1,9 @@
+import sys
 import re
 import pickle
+import gzip
 
-from collections import namedtuple
+from collections import namedtuple, defaultdict
 from logging import error
 
 
@@ -24,6 +26,18 @@ CONLLU_FIELDS = [
     'deprel',
     'deps',
     'misc',
+]
+
+
+FORM_REs = [
+    ('url', re.compile(r'^s?http://', re.U)),
+    ('tag', re.compile(r'^[<\[]/?[a-z]+', re.U)),
+    ('char', re.compile(r'^[a-zA-ZåäöÅÄÖ]$', re.U)),
+    ('upper', re.compile(r'^[A-ZÅÄÖ]+$', re.U)),
+    ('word', re.compile(r'^[a-zA-ZåäöÅÄÖ-]+$', re.U)),
+    ('number', re.compile(r'^-?[0-9][0-9,. -]*$', re.U)),
+    ('wordnum', re.compile(r'^[a-zA-ZåäöÅÄÖ0-9-][a-zA-ZåäöÅÄÖ0-9,.-]*$', re.U)),
+    ('punct', re.compile(r'^[.,:;()\[\]%]+$', re.U)),
 ]
 
 
@@ -61,6 +75,70 @@ def load_examples(fn):
             error('line {}: {}'.format(ln, f))
             raise
     return examples
+
+
+def is_document_boundary(comment):
+    return comment.startswith('# doc_id = ') or comment.startswith('# <doc ')
+
+
+def read_conllu(f, fn, stats=None):
+    if stats is None:
+        stats = defaultdict(int)
+    documents, sentences, comments, words = [], [], [], []
+    for ln, l in enumerate(f, start=1):
+        l = l.rstrip('\n')
+        if not l or l.isspace():
+            sentences.append((comments, words))
+            comments, words = [], []
+        elif l.startswith('#'):
+            if is_document_boundary(l):
+                if sentences:
+                    documents.append(sentences)
+                sentences = []
+            comments.append(l)
+        else:
+            words.append(Word(*l.split('\t')))
+        if ln % 100000 == 0:
+            print('read {} lines, {} docs from {} ...'.format(
+                    ln, len(documents), fn), file=sys.stderr, flush=True)
+    if sentences:
+        documents.append(sentences)
+    return documents
+
+
+def load_conllu(fn, stats=None):
+    if not fn.endswith('.gz'):
+        with open(fn) as f:
+            return read_conllu(f, fn, stats)
+    else:
+        with gzip.open(fn, 'rt') as f:
+            return read_conllu(f, fn, stats)
+
+
+def featurize_document(document):
+    s_stats, w_stats, w_total = defaultdict(int), defaultdict(int), 0
+    for comments, words in document:
+        for w in words:
+            w_stats['upos-{}'.format(w.upos)] += 1
+            w_stats['dep-{}'.format(w.deprel)] += 1
+            w_stats['len-{}'.format(len(w.form))] += 1
+            if w.feats != '_':
+                for f in w.feats.split('|'):
+                    w_stats['feat-{}'.format(f)] += 1
+            for k, r in FORM_REs:
+                if r.match(w.form):
+                    w_stats['form-{}'.format(k)] += 1
+                    break
+            else:
+                w_stats['form-other'] += 1
+            w_total += 1
+    for k, v in w_stats.items():
+        w_stats[k] = v/w_total
+    return w_stats
+    
+
+def featurize_documents(documents):
+    return [featurize_document(d) for d in documents]
 
 
 def save_model(fn, clf, vecf):

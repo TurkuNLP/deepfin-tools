@@ -12,7 +12,7 @@ import numpy as np
 from collections import Counter
 from logging import warning, error
 
-from common import Word, load_model
+from common import Word, load_model, featurize_document
 
 
 TEXT_COMMENT = '# text = '
@@ -29,6 +29,8 @@ def argparser():
                     help='only filter when abs(decision) > THRESHOLD')
     ap.add_argument('-t', '--tokenized', default=False, action='store_true',
                     help='use tokenized text (default raw)')
+    ap.add_argument('-d', '--delex', default=False, action='store_true',
+                    help='use delexicalized features (default raw text)')
     ap.add_argument('model')
     ap.add_argument('data', nargs='+')
     return ap
@@ -72,8 +74,12 @@ def predict_with_bias(X, clf, options):
 
 
 def process_document(sentences, clf, vecf, options):
-    text = get_document_text(sentences, options)
-    X = vecf.transform([text])
+    if not options.delex:
+        text = get_document_text(sentences, options)
+        X = vecf.transform([text])
+    else:
+        feats = featurize_document(sentences)
+        X = vecf.transform([feats])
     #class_ = clf.predict(X)
     #value = clf.decision_function(X)
     class_ , value = predict_with_bias(X, clf, options)
