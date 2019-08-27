@@ -11,7 +11,7 @@ from logging import warning
 
 from common import Word
 
-TAG_LINE_RE = re.compile(r'^[a-zäöå0-9, ]+$')
+TAG_LINE_RE = re.compile(r'^[a-zäöå0-9., ]+$')
 
 PUBLISHER_RE = re.compile(r'.*\(STT.*')
 
@@ -83,7 +83,7 @@ def process_sentences(sentences):
     if i >= len(sentences):
         warning('Document without content: """\n{}\n"""'.format(
             '\n'.join(texts(sentences))))
-        return []
+        return
 
     # find start of body text, demarcated by publisher tag (e.g. "(STT)")
     j = i
@@ -99,6 +99,15 @@ def process_sentences(sentences):
         header = []
         body = sentences[i:]
 
+    # skip initial lines starting or ending with comment markers
+    k = 0
+    while k < len(body) and (text(body[k]).startswith(COMMENT_START) or
+                             text(body[k]).endswith(COMMENT_END)):
+        k += 1
+    if k > 0:
+        header.extend(body[:k])
+        body = body[k:]
+
     # strip trailing non-body content
     i = len(body)-1
     while i >= 0:
@@ -109,6 +118,14 @@ def process_sentences(sentences):
         i -= 1
     while len(body) > 0 and AUTHOR_RE.match(text(body[-1])):
         body = body[:-1]
+
+    # strip comment lines
+    noncomment = []
+    for s in body:
+        if not (text(s).startswith(COMMENT_START) or
+                text(s).endswith(COMMENT_END)):
+            noncomment.append(s)
+    body = noncomment
 
     # transfer document start comments if skipped
     if body and not docstart_comments(body):
