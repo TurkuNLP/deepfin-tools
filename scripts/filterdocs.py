@@ -9,8 +9,10 @@ import re
 from string import punctuation
 from collections import defaultdict
 
-from langdetect import detect
+from langdetect import detect, DetectorFactory
 
+# Make langdetect deterministic
+DetectorFactory.seed = 0
 
 # Regex definition for e.g. --min-words option
 FI_WORD_RE = re.compile(r'\b[A-ZÅÄÖ]?[a-zåäö]{2,}\b')
@@ -157,7 +159,7 @@ def argparser():
     ap.add_argument('-u', '--upper-ratio', default=None, type=float,
                     help='maximum ratio of uppercase characters')
     ap.add_argument('-w', '--min-words', default=None, type=int,
-                    help='minimum number of lowercase Finnish words')
+                    help='minimum number of Finnish words')
     ap.add_argument('file', nargs='+')
     return ap
 
