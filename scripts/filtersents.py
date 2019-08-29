@@ -7,15 +7,13 @@ import re
 
 from string import punctuation
 
-from langdetect import detect
+from langdetect import detect, DetectorFactory
 
+# Make langdetect deterministic
+DetectorFactory.seed = 0
 
-# Regex definition for --min-words option
-FI_WORD_RE = re.compile(r'[a-zåäö]{2,}')
+FI_WORD_RE = re.compile(r'\b[a-zA-ZåäöÅÄÖ][a-zåäö]+\b')
 
-
-# Regex definition for non-Finnish unicode letter
-# (https://stackoverflow.com/a/6314634)
 NON_FI_LETTER = re.compile(r'[^\W\d_a-zA-ZåäöÅÄÖ]')
 
 
@@ -24,7 +22,7 @@ PUNCT = set(punctuation)
 
 def argparser():
     from argparse import ArgumentParser
-    ap = ArgumentParser(description='Filter documents.')
+    ap = ArgumentParser(description='Filter sentences.')
     ap.add_argument('-d', '--digit-ratio', default=None, type=float,
                     help='maximum ratio of digit characters')
     ap.add_argument('-f', '--foreign-ratio', default=None, type=float,
@@ -33,6 +31,8 @@ def argparser():
                     help='invert filter criteria')
     ap.add_argument('-l', '--langdetect', default=False, action='store_true',
                     help='run langdetect to filter to Finnish')
+    ap.add_argument('-L', '--limit', default=None, type=int,
+                    help='limit number of documents to process')    
     ap.add_argument('-p', '--punct-ratio', default=None, type=float,
                     help='maximum ratio of punctuation characters')
     ap.add_argument('-t', '--min-toks', default=None, type=int,
@@ -40,9 +40,9 @@ def argparser():
     ap.add_argument('-T', '--max-toks', default=None, type=int,
                     help='maximum number of tokens')
     ap.add_argument('-w', '--min-words', default=None, type=int,
-                    help='minimum number of lowercase Finnish words')
+                    help='minimum number of Finnish words')
     ap.add_argument('-W', '--max-words', default=None, type=int,
-                    help='maximum number of lowercase Finnish words')
+                    help='maximum number of Finnish words')
     ap.add_argument('-u', '--upper-ratio', default=None, type=float,
                     help='maximum ratio of uppercase characters')
     ap.add_argument('file', nargs='*')
@@ -121,6 +121,8 @@ def process(fn, options):
 
 def main(argv):
     args = argparser().parse_args(argv[1:])
+    if args.limit is not None:
+        raise NotImplementedError
     for fn in args.file:
         process(fn, args)
     if len(args.file) == 0:
