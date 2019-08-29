@@ -40,9 +40,20 @@ CONLLU_FIELDS = [
 Word = namedtuple('Word', CONLLU_FIELDS)
 
 
+LABEL_COMMENTS = [
+    '# filter_result =',
+    '# sentfilter_result =',
+    '# predicted_class =',
+    '# predicted_value =',
+    '# sentfilter =',
+]
+
+
 def argparser():
     from argparse import ArgumentParser
     ap = ArgumentParser(description='Get text from CoNLL-U data')
+    ap.add_argument('-l', '--labels', default=False, action='store_true',
+                    help='include document label comments')
     ap.add_argument('-t', '--tokenized', default=False, action='store_true',
                     help='get tokenized text (default raw)')
     ap.add_argument('data', nargs='+')
@@ -57,8 +68,17 @@ def get_text(comments):
     return text_line[len(TEXT_COMMENT):]
 
 
+def get_label_comments(comments):
+    return [
+        c for c in comments 
+        if any(c.startswith(l) for l in LABEL_COMMENTS)
+    ]
+
 def process_document(sentences, options):
-    for comments, words in sentences:
+    for i, (comments, words) in enumerate(sentences):
+        if options.labels and i == 0:
+            for c in get_label_comments(comments):
+                print(c)
         if options.tokenized:
             raise NotImplementedError
         else:
