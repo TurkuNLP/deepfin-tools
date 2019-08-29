@@ -34,6 +34,8 @@ DOCSTART_COMMENTS = [
 def argparser():
     from argparse import ArgumentParser
     ap = ArgumentParser(description='Clean up STT sentences.')
+    ap.add_argument('-o', '--output', metavar='FILE', default=None,
+                    help='output file (default STDOUT)')
     ap.add_argument('file', nargs='+')
     return ap
 
@@ -62,7 +64,7 @@ def docstart_comments(sentences):
     return start_comments
 
 
-def process_sentences(sentences):
+def process_sentences(sentences, out):
     # Remove tags and comment lines from document, print out rest.
     # Document example:
     # """
@@ -130,21 +132,21 @@ def process_sentences(sentences):
     # transfer document start comments if skipped
     if body and not docstart_comments(body):
         for c in start_comments:
-            print(c)
+            print(c, file=out)
 
     for comments, words in body:
         for c in comments:
-            print(c)
+            print(c, file=out)
         for w in words:
-            print('\t'.join(w))
-        print()
+            print('\t'.join(w), file=out)
+        print(file=out)
 
 
 def is_document_boundary(comment):
     return comment.startswith('# doc_id = ') or comment.startswith('# <doc ')
         
 
-def process_stream(f, options):
+def process_stream(f, out, options):
     sentences, comments, words = [], [], []
     for ln, l in enumerate(f, start=1):
         l = l.rstrip('\n')
@@ -154,28 +156,33 @@ def process_stream(f, options):
         elif l.startswith('#'):
             if is_document_boundary(l):
                 if sentences:
-                    process_sentences(sentences)
+                    process_sentences(sentences, out)
                 sentences = []
             comments.append(l)
         else:
             words.append(Word(*l.split('\t')))
     if sentences:
-        process_sentences(sentences)
+        process_sentences(sentences, out)
 
 
-def process(fn, options):
+def process(fn, out, options):
     if not fn.endswith('.gz'):
         with open(fn) as f:
-            return process_stream(f, options)
+            return process_stream(f, out, options)
     else:
         with gzip.open(fn, 'rt') as f:
-            return process_stream(f, options)
+            return process_stream(f, out, options)
 
 
 def main(argv):
     args = argparser().parse_args(argv[1:])
-    for fn in args.file:
-        process(fn, args)
+    if args.output is None:
+        for fn in args.file:
+            process(fn, sys.stdout, args)
+    else:
+        with open(args.output, 'w') as out:
+            for fn in args.file:
+                process(fn, out, args)
     return 0
 
 
