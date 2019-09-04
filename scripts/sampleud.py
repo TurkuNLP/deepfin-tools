@@ -2,7 +2,7 @@
 
 import sys
 import os
-import pickle
+import gzip
 
 from random import random
 
@@ -28,25 +28,33 @@ def process_document(sentences, options):
         print()
 
 
-def sample(fn, options):
+def sample_stream(f, fn, options):
     sentences, comments, words = [], [], []
-    with open(fn) as f:
-        for ln, l in enumerate(f, start=1):
-            l = l.rstrip('\n')
-            if not l or l.isspace():
-                sentences.append((comments, words))
-                comments, words = [], []
-            elif l.startswith('#'):
-                if is_document_boundary(l):
-                    if sentences:
-                        process_document(sentences, options)
-                    sentences = []
-                comments.append(l)
-            else:
-                words.append(Word(*l.split('\t')))
-        if sentences:
-            process_document(sentences, options)
+    for ln, l in enumerate(f, start=1):
+        l = l.rstrip('\n')
+        if not l or l.isspace():
+            sentences.append((comments, words))
+            comments, words = [], []
+        elif l.startswith('#'):
+            if is_document_boundary(l):
+                if sentences:
+                    process_document(sentences, options)
+                sentences = []
+            comments.append(l)
+        else:
+            words.append(Word(*l.split('\t')))
+    if sentences:
+        process_document(sentences, options)
         
+
+def sample(fn, options):
+    if not fn.endswith('.gz'):
+        with open(fn) as f:
+            return sample_stream(f, fn, options)
+    else:
+        with gzip.open(fn, 'rt') as f:
+            return sample_stream(f, fn, options)
+
 
 def main(argv):
     args = argparser().parse_args(argv[1:])
