@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --ntasks=1
-#SBATCH --time=24:00:00
+#SBATCH --time=72:00:00
 #SBATCH --mem=8192
 #SBATCH --partition=parallel
 #SBATCH --output=/homeappl/home/pyysalos/sbatch-out/stdout/%j.txt

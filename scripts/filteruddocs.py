@@ -10,7 +10,7 @@ import re
 from collections import Counter, defaultdict
 from logging import warning, error
 
-from common import Word, load_model
+from common import Word
 from filterdocs import argparser, filter_sentences
 
 
