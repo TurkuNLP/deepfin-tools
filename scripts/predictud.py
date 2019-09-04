@@ -31,6 +31,8 @@ def argparser():
                     help='use tokenized text (default raw)')
     ap.add_argument('-d', '--delex', default=False, action='store_true',
                     help='use delexicalized features (default raw text)')
+    ap.add_argument('-p', '--prefix', default=None,
+                    help='prefix to attach to result comments')
     ap.add_argument('model')
     ap.add_argument('data', nargs='+')
     return ap
@@ -87,8 +89,9 @@ def process_document(sentences, clf, vecf, options):
         (options.threshold is None or abs(value) > options.threshold)):
         return 0
     else:
-        print('# predicted_class = {}'.format(class_))
-        print('# predicted_value = {}'.format(value))
+        prefix = options.prefix if options.prefix is not None else ''
+        print('# {}predicted_class = {}'.format(prefix, class_))
+        print('# {}predicted_value = {}'.format(prefix, value))
         for comments, words in sentences:
             for c in comments:
                 print(c)
